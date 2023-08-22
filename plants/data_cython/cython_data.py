@@ -1,7 +1,7 @@
 import tabix
 import pyfaidx
 from abc import ABCMeta
-from _cython_genome import _fast_sequence_to_encoding, _fast_get_feature_data
+from ._cython_genome import _fast_sequence_to_encoding, _fast_get_feature_data
 
 
 def get_chrs_len(genome, chrs):

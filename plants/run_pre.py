@@ -6,13 +6,14 @@ import logging
 import argparse
 from datetime import datetime
 
-sys.path.append('../')
-from cython_data import GenomeSequence, GenomicFeatures
-from cython_file import BedFileSampler
+from data_cython.cython_data import GenomeSequence, GenomicFeatures
+from data_cython.cython_file import BedFileSampler
 
 from plants import seed_everything, plant_feature, plant_bed
 from utils_pre import BatchMaking, pretrain_loss
-from model_revolution import Model4Pretrain
+
+sys.path.append('../')
+from models.cdil import Model4Pretrain_plant
 
 parser = argparse.ArgumentParser(description='experiment')
 parser.add_argument('--pre_plant', type=str, default='ar')  # ar bd mh sb si zm zs
@@ -26,6 +27,7 @@ parser.add_argument('--pre_epoch', type=int, default=50)
 parser.add_argument('--model_ks', type=int, default=3)
 parser.add_argument('--en_hide', type=int, default=128)
 parser.add_argument('--de_hide', type=int, default=32)
+parser.add_argument('--dropout', type=float, default=0)
 args = parser.parse_args()
 
 pre_plant = args.pre_plant
@@ -39,6 +41,7 @@ pre_epoch = args.pre_epoch
 model_ks = args.model_ks
 en_hide = args.en_hide
 de_hide = args.de_hide
+dropout = args.dropout
 
 input_size = 4
 seed_everything(1)
@@ -58,7 +61,7 @@ pre_train_num = int(num_train/100*pre_n)
 pre_layer = math.ceil(math.log(pre_len/2, 2))
 
 mask = BatchMaking(pre_mask)
-pre_net = Model4Pretrain(input_size, en_hide, de_hide, model_ks, pre_layer)
+pre_net = Model4Pretrain_plant(input_size, en_hide, de_hide, pre_layer, model_ks, dropout)
 pre_net = torch.nn.DataParallel(pre_net)
 pre_net = pre_net.to(device)
 pre_loss = torch.nn.BCELoss(reduction='sum')
@@ -125,7 +128,7 @@ for e in range(pre_epoch):
     loginf('EPOCH:{} -- Train loss:{} -- time:{}'.format(e, train_loss_mean, train_time))
 
     if (e + 1) % 10 == 0:
-        torch.save(pre_net.module.cdilNet.state_dict(), './pre/' + pre_task + '/' + pre_log + '_E' + str(e) + '.pkl')
+        torch.save(pre_net.module.encoder.state_dict(), './pre/' + pre_task + '/' + pre_log + '_E' + str(e) + '.pkl')
 
     # with torch.no_grad():
     #     pre_net.eval()

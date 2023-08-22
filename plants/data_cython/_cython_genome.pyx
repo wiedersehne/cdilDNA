@@ -31,9 +31,9 @@ def _fast_get_feature_data(int start, int end, dict feature_index_dict, rows):
     cdef int query_length = end - start
     cdef int feature_start, feature_end, index_start, index_end, index_feat
     cdef np.ndarray[DTYPE_t, ndim=2] encoding = np.zeros(
-        (query_length, n_features), dtype=np.int)
+        (query_length, n_features), dtype=int)
     cdef np.ndarray[DTYPE_t, ndim=1] targets = np.zeros(
-        n_features, dtype=np.int)
+        n_features, dtype=int)
     cdef list row
 
     if rows is None:
