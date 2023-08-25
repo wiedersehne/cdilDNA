@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 from abc import ABCMeta
-from _cython_genome import _fast_get_feature_data_thresholds
+from ._cython_genome import _fast_get_feature_data_thresholds
 
 
 def _define_feature_thresholds(feature_thresholds, features):

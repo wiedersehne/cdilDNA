@@ -2,14 +2,12 @@ import math
 import torch
 import torch.nn as nn
 from linformer import Linformer
-from torch.nn import TransformerEncoder, TransformerEncoderLayer
-from nystrom_attention import Nystromformer
 from performer_pytorch import Performer
-from flash_attn.flash_attention import FlashMHA
-from mega_pytorch import MegaLayer
-# from Other_models.S4_model import S4Model
+from nystrom_attention import Nystromformer
+from torch.nn import TransformerEncoder, TransformerEncoderLayer
 
 
+#  Refer to https://pytorch.org/tutorials/beginner/transformer_tutorial.html
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len, dropout: float = 0.1):
         super().__init__()
@@ -22,81 +20,36 @@ class PositionalEncoding(nn.Module):
         self.register_buffer('pe', pe)
 
     def forward(self, x):
+        x = x.permute(1, 0, 2)
         x = x + self.pe[:x.size(0)]  # [seq_len, batch_size, dim]
+        x = x.permute(1, 0, 2)
         return self.dropout(x)
 
 
 class XFormer(nn.Module):
     def __init__(self, model, use_pos, input_size, dim, depth, heads, seq_len):
         super(XFormer, self).__init__()
+
         self.model = model
         self.use_pos = use_pos
-        self.seq_len = seq_len
-        self.pos_enc = nn.Embedding(seq_len, dim)
-        # self.pos_encoding = PositionalEncoding(dim, seq_len)
-        self.linear = nn.Linear(input_size, dim)
+        if use_pos:
+            self.linear = nn.Linear(input_size, dim)
+            self.pos_enc = PositionalEncoding(dim, seq_len)
 
         if model == 'transformer':
             encoder_layers = TransformerEncoderLayer(dim, heads, dim)
             self.former = TransformerEncoder(encoder_layers, depth)
-        elif model == 'nystromer':
-            self.former = Nystromformer(
-            dim=dim,
-            dim_head=int(dim/heads),
-            heads=heads,
-            depth=depth,
-            num_landmarks=256,  # number of landmarks
-            pinv_iterations=6
-        )
         elif model == 'performer':
             self.former = Performer(dim=dim, depth=depth, heads=heads, dim_head=dim)
         elif model == 'linformer':
-            self.former = Linformer(
-                        dim = dim,
-                        seq_len = seq_len,
-                        depth =depth,
-                        heads = heads,
-                        k = dim,
-                        one_kv_head = True,
-                        share_kv = True
-                    )
-        elif model == 'flash':
-            self.former = FlashMHA(
-                embed_dim=dim, # total channels (= num_heads * head_dim)
-                num_heads=heads, # number of heads
-                dtype=torch.float16,
-            )
-        elif model == 'mega':
-            self.former = nn.Sequential(
-                *[MegaLayer(
-                    dim = dim,                   # model dimensions
-                    ema_heads = heads,              # number of EMA heads
-                    attn_dim_qk = dim,            # dimension of queries / keys in attention
-                    attn_dim_value = dim*2,        # dimension of values in attention
-                    laplacian_attn_fn = False,   # whether to use softmax (false) or laplacian attention activation fn (true)
-                ) for _ in range(depth)]
-            )
-        # elif model == 's4':
-        #     self.former = S4Model(
-        #                     d_input=input_size,
-        #                     d_model=dim,
-        #                     n_layers=depth,
-        #                     dropout=0.2,
-        #                     prenorm=True,
-        #                 )
-        print(self.former)
+            self.former = Linformer(dim=dim, seq_len=seq_len, depth=depth, heads=heads, k=dim)
+        elif model == 'nystromformer':
+            self.former = Nystromformer(dim=dim, depth=depth, heads=heads)
 
     def forward(self, x):
-        # x = x.float()
-        positions = torch.arange(0, self.seq_len).expand(x.size(0), self.seq_len).cuda()
-        x = self.linear(x)
-        # x = x.to(torch.float16)
-        if self.use_pos and self.model!="transformer":
-            pos_enc =  self.pos_enc(positions)
-            x = pos_enc + x
-
-        if self.use_pos and self.model=="transformer":
-            x =  self.pos_encoding(x)
+        if self.use_pos:
+            x = self.linear(x)
+            x = self.pos_enc(x)  # out: num, length, dim
 
         if self.model == 'transformer':
             x = x.permute(1, 0, 2)
@@ -104,6 +57,7 @@ class XFormer(nn.Module):
             x = x.permute(1, 0, 2)
         else:
             x = self.former(x)
+
         return x
 
 
@@ -136,15 +90,16 @@ class FormerClassifier(nn.Module):
         return y
 
 
-class Plant_FormerClassifier(nn.Module):
-    def __init__(self, name, layers, heads, dim_in, dim_out, clf_dim, max_len, output_size, center=200):
+class FormerClassifier_plant(nn.Module):
+    def __init__(self, name, depth1, depth2, heads, dim_in, dim_out, output_size, max_len, center=200):
         super().__init__()
         self.seq_len = max_len
         self.center = center
 
-        self.encoder = XFormer(name, True, dim_in, dim_out, depth=layers, heads=heads, seq_len=max_len)
-        self.Net2 = XFormer(name, False, dim_out, clf_dim, depth=layers, heads=heads, seq_len=max_len)
-        self.linear = nn.Linear(clf_dim, output_size).half()
+        self.encoder = XFormer(name, True, dim_in, dim_out, depth=depth1, heads=heads, seq_len=max_len)
+        self.Net2 = XFormer(name, False, dim_out, dim_out, depth=depth2, heads=heads, seq_len=max_len)
+        self.linear = nn.Linear(dim_out, output_size)
+        self.sig = nn.Sigmoid()
 
     def forward(self, seq):
         en = self.encoder(seq)
@@ -152,4 +107,4 @@ class Plant_FormerClassifier(nn.Module):
         new_start = int((self.seq_len - self.center) / 2)
         y_center = de[:, new_start:new_start + self.center, :]
         y = self.linear(torch.mean(y_center, dim=1))
-        return y
+        return self.sig(y)

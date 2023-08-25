@@ -9,13 +9,19 @@ import numpy as np
 from datetime import datetime
 from sklearn.metrics import roc_auc_score, average_precision_score
 
-sys.path.append('../')
-from cython_data import GenomeSequence, GenomicFeatures
-from cython_file import BedFileSampler
+from data_cython.cython_data import GenomeSequence, GenomicFeatures
+from data_cython.cython_file import BedFileSampler
 
 from plants import seed_everything, plant_feature, plant_bed
-from model_revolution import Revolution
-from model_deeperdeepsea import DeeperDeepSEA
+
+sys.path.append('../')
+from models.cdil import Classifier_plant
+from models.cnn import ClassifierCNN_plant
+from models.dil import ClassifierDIL_plant
+from models.tcn import ClassifierTCN_plant
+
+from models.deeperdeepsea import DeeperDeepSEA
+from models.xformers import FormerClassifier_plant
 
 
 parser = argparse.ArgumentParser(description='experiment')
@@ -25,7 +31,7 @@ parser.add_argument('--pre_froze', action='store_true')
 parser.add_argument('--pre_two', action='store_true')
 parser.add_argument('--pre_two_load', type=int, default=0)
 
-parser.add_argument('--pre_plant', type=str, default='ar')  # bd mh sb si zm zs
+parser.add_argument('--pre_plant', type=str, default='ar')  # ar bd mh sb si zm zs
 parser.add_argument('--pre_len', type=int, default=1000)
 parser.add_argument('--pre_mask', type=float, default=0.15)
 parser.add_argument('--pre_bs', type=int, default=256)
@@ -37,9 +43,13 @@ parser.add_argument('--pre_de_hide', type=int, default=32)
 parser.add_argument('--seq_len', type=int, default=1000)
 parser.add_argument('--n_train', type=float, default=1)
 
-parser.add_argument('--model', type=str, default='revolution')
+parser.add_argument('--model', type=str, default='cdil')
 parser.add_argument('--model_ks', type=int, default=3)
 parser.add_argument('--hide2', type=int, default=32)
+parser.add_argument('--dropout', type=float, default=0)
+parser.add_argument('--depth1', type=int, default=4)
+parser.add_argument('--depth2', type=int, default=2)
+parser.add_argument('--heads', type=int, default=4)
 
 parser.add_argument('--bs', type=int, default=256)
 parser.add_argument('--epoch', type=int, default=50)
@@ -69,6 +79,10 @@ n_train = args.n_train
 model = args.model
 model_ks = args.model_ks
 hide2 = args.hide2
+dropout = args.dropout
+depth1 = args.depth1
+depth2 = args.depth2
+heads = args.heads
 
 batch_size = args.bs
 epoch = args.epoch
@@ -102,29 +116,25 @@ pre_task = 'pre' + str(pre_mask) + '_L' + str(pre_len) + '_E' + str(en_hide) + '
 pre_log = 'K' + str(model_ks) + '_L' + str(pre_layer) + '_bs' + str(pre_bs)
 
 task = 'train_' + plant + str(train_samples)
-if model == 'deepsea':
-    net = DeeperDeepSEA(seq_len, n_feature)
+if model == 'cdil':
+    net = Classifier_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
     para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
-    log_name1 = 'deepsea'
-else:
-    net = Revolution(input_size, en_hide, hide2, n_feature, model_ks, layer, seq_len)
-    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
-    log_name0 = 'revolution_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
+    log_name0 = 'cdil_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
 
     if pre_training:
         load_path = './pre/' + pre_task + '/' + pre_log + '_E' + str(pre_load) + '.pkl'
         load_pre = torch.load(load_path)
 
-        net_dict = net.cdilNet.state_dict()
+        net_dict = net.encoder.state_dict()
         load_pre = {k: v for k, v in load_pre.items() if k in net_dict}
 
         net_dict.update(load_pre)
-        net.cdilNet.load_state_dict(net_dict)
+        net.encoder.load_state_dict(net_dict)
 
         if pre_froze:
             tuning = '_pro'
             for i_conv in range(min(pre_layer, layer)):
-                for p in net.cdilNet.conv_net[i_conv].parameters():
+                for p in net.encoder.conv_net[i_conv].parameters():
                     p.requires_grad = False
         else:
             tuning = '_ft'
@@ -133,15 +143,40 @@ else:
     elif pre_two:
         load_path = './train/' + task + '/' + 'L' + str(seq_len) + log_name0 +\
                     '_pro' + str(pre_train_num) + '_pre' + str(pre_mask) + '_L' + str(pre_len) + '_E' + str(pre_load) + \
-                    '_S' + str(seed) + '_bs' + str(batch_size) + '_' + str(pre_two_load) + '.pkl'
+                    '_S' + str(seed) + '_bs' + str(batch_size) + '_lr' + str(lr) + '_' + str(pre_two_load) + '.pkl'
 
         net.load_state_dict({k.replace('module.', ''): v for k, v in torch.load(load_path).items()})
         log_name1 = log_name0 + '_two' + str(pre_train_num) + '_pre' + str(pre_mask) + '_L' + str(pre_len) + '_E' + str(pre_load) + '_P' + str(pre_two_load)
     else:
         log_name1 = log_name0 + '_nopre'
-log_name = 'L' + str(seq_len) + log_name1 + '_S' + str(seed) + '_bs' + str(batch_size)
+elif model == 'dil':
+    net = ClassifierDIL_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
+    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    log_name0 = 'dil_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
+    log_name1 = log_name0 + '_nopre'
+elif model == 'cnn':
+    net = ClassifierCNN_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
+    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    log_name0 = 'cnn_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
+    log_name1 = log_name0 + '_nopre'
+elif model == 'tcn':
+    net = ClassifierTCN_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
+    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    log_name0 = 'tcn_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
+    log_name1 = log_name0 + '_nopre'
 
-net = torch.nn.DataParallel(net)
+elif model == 'deepsea':
+    net = DeeperDeepSEA(seq_len, n_feature)
+    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    log_name1 = 'deepsea'
+else:
+    net = FormerClassifier_plant(model, depth1, depth2, heads, input_size, en_hide, n_feature, seq_len)
+    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
+    log_name0 = model + '_L' + str(depth1) + 'L' + str(depth2) + '_H' + str(heads) + '_D' + str(en_hide)
+    log_name1 = log_name0 + '_nopre'
+log_name = 'L' + str(seq_len) + log_name1 + '_S' + str(seed) + '_bs' + str(batch_size) + '_lr' + str(lr)
+
+#net = torch.nn.DataParallel(net)
 net = net.to(device)
 loss = torch.nn.BCELoss(reduction='sum')
 optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -159,7 +194,7 @@ loginf('n_parameters:{}'.format(para_num))
 loginf('learning rate:{}'.format(lr))
 loginf('n_train:{} \t n_eval:{}'.format(train_samples, num_eval))
 if use_wandb:
-    wandb.init(project=task + '_1_L1000', name=log_name, entity="leic-no")
+    wandb.init(project=task, name=log_name, entity="leic-no")
 
 train_iter = train_sampler.get_data_and_targets(batch_size, train_samples, add=add_len)
 val_iter = val_sampler.get_data_and_targets(batch_size, num_eval, add=add_len)
