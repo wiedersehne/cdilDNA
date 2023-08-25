@@ -5,24 +5,26 @@ import torch.nn as nn
 class CDIL_Block(nn.Module):
     def __init__(self, c_in, c_out, hdim, ks, dil, dropout):
         super(CDIL_Block, self).__init__()
-        self.conv1 = nn.Conv1d(in_channels=c_in, out_channels=hdim, kernel_size=ks, padding='same', dilation=dil, padding_mode='circular', bias = False)
-        self.conv2 = nn.Conv1d(in_channels=hdim, out_channels=c_out, kernel_size=ks, padding='same', dilation=dil, padding_mode='circular', bias = False)
-        self.dropout = nn.Dropout(dropout)
+        self.conv1 = nn.Conv1d(in_channels=c_in, out_channels=hdim, kernel_size=ks, padding='same', dilation=dil, padding_mode='circular', bias=False)
+        self.conv2 = nn.Conv1d(in_channels=hdim, out_channels=c_out, kernel_size=ks, padding='same', dilation=dil, padding_mode='circular', bias=False)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
         self.batch_norm1 = nn.BatchNorm1d(hdim)
         self.batch_norm2 = nn.BatchNorm1d(c_out)
+        self.nonlinear1 = nn.ReLU()
+        self.nonlinear2 = nn.ReLU()
         self.res = nn.Conv1d(c_in, c_out, kernel_size=(1,)) if c_in != c_out else None
-        self.nonlinear = nn.ReLU()
 
     def forward(self, x):
         out = self.conv1(x)
-        out = self.dropout(out)
+        out = self.dropout1(out)
         out = self.batch_norm1(out)
-        out = self.nonlinear(out)
+        out = self.nonlinear1(out)
 
         out = self.conv2(out)
-        out = self.dropout(out)
+        out = self.dropout2(out)
         out = self.batch_norm2(out)
-        out = self.nonlinear(out)
+        out = self.nonlinear2(out)
 
         res = x if self.res is None else self.res(x)
         return out + res
