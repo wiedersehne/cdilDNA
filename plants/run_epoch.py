@@ -17,8 +17,6 @@ from plants import seed_everything, plant_feature, plant_bed
 sys.path.append('../')
 from models.cdil import Classifier_plant
 from models.cnn import ClassifierCNN_plant
-from models.dil import ClassifierDIL_plant
-from models.tcn import ClassifierTCN_plant
 
 from models.deeperdeepsea import DeeperDeepSEA
 from models.xformers import FormerClassifier_plant
@@ -149,22 +147,11 @@ if model == 'cdil':
         log_name1 = log_name0 + '_two' + str(pre_train_num) + '_pre' + str(pre_mask) + '_L' + str(pre_len) + '_E' + str(pre_load) + '_P' + str(pre_two_load)
     else:
         log_name1 = log_name0 + '_nopre'
-elif model == 'dil':
-    net = ClassifierDIL_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
-    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
-    log_name0 = 'dil_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
-    log_name1 = log_name0 + '_nopre'
 elif model == 'cnn':
     net = ClassifierCNN_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
     para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
     log_name0 = 'cnn_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
     log_name1 = log_name0 + '_nopre'
-elif model == 'tcn':
-    net = ClassifierTCN_plant(input_size, en_hide, hide2, layer, model_ks, n_feature, seq_len, dropout)
-    para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
-    log_name0 = 'tcn_L' + str(layer) + '_H' + str(en_hide) + 'H' + str(hide2)
-    log_name1 = log_name0 + '_nopre'
-
 elif model == 'deepsea':
     net = DeeperDeepSEA(seq_len, n_feature)
     para_num = sum(p.numel() for p in net.parameters() if p.requires_grad)
@@ -176,7 +163,7 @@ else:
     log_name1 = log_name0 + '_nopre'
 log_name = 'L' + str(seq_len) + log_name1 + '_S' + str(seed) + '_bs' + str(batch_size) + '_lr' + str(lr)
 
-#net = torch.nn.DataParallel(net)
+# net = torch.nn.DataParallel(net)
 net = net.to(device)
 loss = torch.nn.BCELoss(reduction='sum')
 optimizer = torch.optim.Adam(net.parameters(), lr=lr)
