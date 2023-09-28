@@ -27,10 +27,10 @@ class UniformMasking:
         real_vec = np.array(real_vec).astype(bool)
 
         # 3. masking with all zeros.
-        instance[real_vec, :] = [0, 0, 0, 0]
+        instance[(real_vec == 1), :] = [0, 0, 0, 0]
 
         # 4. masking with random one-hot encode
-        instance[random_vec, :] = np.eye(4)[np.random.choice(4, 1)]
+        instance[(random_vec == 1), :] = np.eye(4)[np.random.choice(4, 1)]
 
         return instance, masked_vec
 
