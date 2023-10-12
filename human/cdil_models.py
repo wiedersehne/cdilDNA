@@ -28,9 +28,9 @@ def gelu(x):
     return x * 0.5 * (1.0 + torch.erf(x / math.sqrt(2.0)))
 
 
-class RevolutionBlock(nn.Module):
+class CDILBlock(nn.Module):
     def __init__(self, c_in, c_out, hdim, ks, dil, dropout):
-        super(RevolutionBlock, self).__init__()
+        super(CDILBlock, self).__init__()
         self.conv1 = nn.Conv1d(in_channels=c_in, out_channels=hdim, kernel_size=ks, padding='same', dilation=dil, padding_mode='circular', bias = False)
         self.conv2 = nn.Conv1d(in_channels=hdim, out_channels=c_out, kernel_size=ks, padding='same', dilation=dil, padding_mode='circular', bias = False)
         self.dropout = nn.Dropout(dropout)
@@ -52,7 +52,7 @@ class RevolutionBlock(nn.Module):
         res = x if self.res is None else self.res(x)
         return self.nonlinear(out) + res
     
-# class RevolutionBlock2(nn.Module):
+# class CDILBlock2(nn.Module):
 #     def __init__(self, c_in, c_out, hdim, ks, dil, dropout):
 
 #         super().__init__()
@@ -77,9 +77,9 @@ class RevolutionBlock(nn.Module):
 #         return out2 + x2
 
 
-class RevolutionLayer(nn.Module):
+class CDILLayer(nn.Module):
     def __init__(self, dim_in, dim_out, hdim, ks, dropout):
-        super(RevolutionLayer, self).__init__()
+        super(CDILLayer, self).__init__()
         layers = []
         for i in range(len(dim_out)):
             current_input = dim_in if i == 0 else dim_out[i - 1]
@@ -87,7 +87,7 @@ class RevolutionLayer(nn.Module):
             hdim = hdim
             current_dilation = 2 ** i
             current_dropout = dropout
-            layers += [RevolutionBlock(current_input, current_output, hdim, ks, current_dilation, current_dropout)]
+            layers += [CDILBlock(current_input, current_output, hdim, ks, current_dilation, current_dropout)]
         self.conv_net = nn.Sequential(*layers)
 
     def forward(self, x):
@@ -112,8 +112,8 @@ class ClassifierHead(nn.Module):
 class Classifier(nn.Module):
     def __init__(self, dim_in, dim_out, clf_dim, layers, ks, output_size, max_len, dropout):
         super(Classifier, self).__init__()
-        self.encoder = RevolutionLayer(dim_in, [dim_out]*layers, dim_out*2, ks, dropout)
-        self.revoClf = RevolutionLayer(dim_out, [clf_dim]*layers, clf_dim*2, ks, dropout)
+        self.encoder = CDILLayer(dim_in, [dim_out]*layers, dim_out*2, ks, dropout)
+        self.revoClf = CDILLayer(dim_out, [clf_dim]*layers, clf_dim*2, ks, dropout)
         self.classifier = ClassifierHead(clf_dim, output_size)
         # self.freeze_cdilNet()dim_in: 5
 

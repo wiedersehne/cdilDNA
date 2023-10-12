@@ -9,7 +9,7 @@ from tqdm import tqdm
 from omegaconf import OmegaConf
 from functools import lru_cache
 from torch.utils.data import DataLoader
-from revolution_models import Classifier
+from CDIL_models import Classifier
 # from CNN import Classifier
 from data_utils import vcf_Dataset
 from torchmetrics import AUROC
@@ -29,9 +29,9 @@ class LightningWrapper(pl.LightningModule):
     def __init__(self, model, cfg, snapshot_path, train_set, val_set, test_set, pretrained, loss, file_name):
         super().__init__()
         self.save_hyperparameters(cfg)
-        self.model_config = self.hparams.Revolution
+        self.model_config = self.hparams.CDIL
         self.batch_size = self.hparams.training.batch_size
-        self.length = self.hparams.Revolution.max_len
+        self.length = self.hparams.CDIL.max_len
         self.model = model(**self.model_config)#.apply(self._init_weights)
         self.save_every = self.hparams.training.save_every
         self.snapshot_path = snapshot_path
@@ -264,7 +264,7 @@ class LightningWrapper(pl.LightningModule):
 
 def classify_main(cfg):
     pretrained = cfg.Fine_tuning.training.pretrained
-    length = cfg.Fine_tuning.Revolution.max_len
+    length = cfg.Fine_tuning.CDIL.max_len
     model_name = "cdil"
 
     loss = nn.BCEWithLogitsLoss()

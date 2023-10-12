@@ -6,7 +6,7 @@ import torch.nn as nn
 import sys
 import yaml
 import argparse
-import revolution_models
+import cdil_models
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
 from datetime import datetime
@@ -22,7 +22,7 @@ from sklearn.metrics import roc_auc_score, average_precision_score
 import wandb
 from omegaconf import OmegaConf
 from functools import lru_cache
-from revolution_models import *
+from cdil_models import *
 from torch.distributed import init_process_group, destroy_process_group
 import pytorch_lightning as pl
 import matplotlib.pyplot as plt
@@ -80,10 +80,10 @@ class Model4Pretrain(nn.Module):
     "CDIL Model for Pretrain : Masked LM"
     def __init__(self, dim, hdim1, hdim2, kernel_size, n_layers, dropout):
         super().__init__()
-        self.encoder = RevolutionLayer(dim, [hdim1]*n_layers, hdim1*2, kernel_size, dropout)
+        self.encoder = CDILLayer(dim, [hdim1]*n_layers, hdim1*2, kernel_size, dropout)
         self.hidden_list = [hdim2]*n_layers
         self.hidden_list[-1] = dim
-        self.decoder = RevolutionLayer(hdim1, self.hidden_list, hdim2*2, kernel_size, dropout)
+        self.decoder = CDILLayer(hdim1, self.hidden_list, hdim2*2, kernel_size, dropout)
         # self.sigmoid = nn.Sigmoid()
 
     def forward(self, input_seq):
@@ -102,7 +102,7 @@ class LightningWrapper(pl.LightningModule):
     def __init__(self, model, cfg, snapshot_path, train_set, val_set, loss):
         super().__init__()
         self.save_hyperparameters(cfg)
-        self.model_config = self.hparams.Revolution
+        self.model_config = self.hparams.CDIL
         self.batch_size = self.hparams.training.batch_size
         self.model = model(**self.model_config).apply(self._init_weights)
         self.save_every = self.hparams.training.save_every
