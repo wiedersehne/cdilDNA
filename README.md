@@ -8,7 +8,7 @@ paper: [https://doi.org/10.1016/j.neunet.2023.12.002](https://doi.org/10.1016/j.
 ## Variant Effect Prediction in Human Tissues. 
 ### To pretrain a model you need to follow the steps:
 1. Download GRCH38 from http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz. (3.1G)
-2. Run **generate_pretrain_human.py** in `./data/`. Sequence length [1k, 5k, 10k] and numbers(100k) are required. You need to load two data files, **hg38.fa** and **chromosomes.csv**, for this task.
+2. Run **generate_pretrain_human.py** in `./data/`. Sequence length [1k, 5k, 10k] and numbers(100k) are required.
 3. Run **pretraining.py** with the generated data. Configurations of different lengths shall be changed accordingly in **config.yaml**.
 ### To fine-tune a pretrained model, you need to:
 1. Run **generate_data.py** in `./data/` to save data. The sequence length is required. A total of 97,922 sequence will be extracted. **ve_df.csv** needs to be loaded.
