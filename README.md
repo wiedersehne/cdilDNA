@@ -25,6 +25,8 @@
 [varant_effect result](human_len.pdf)
 
 ## OCRs prediciton in plants.
+![image](https://github.com/wiedersehne/cdilDNA/assets/8848011/304e2ce2-f009-4366-94c9-1f3427e530a7)
+
 ### To pretrain a model you need to follow the steps:
 1. Download reference genome files from https://plantdeepsea-toturial2.readthedocs.io/en/latest/08-Statistics.html
 2. Run **plant_download.ipynb** in `./data/plant_data/`to download training data.
