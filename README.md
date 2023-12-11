@@ -1,4 +1,6 @@
 # cdilDNA
+![image](https://github.com/wiedersehne/cdilDNA/assets/8848011/17f25d7b-3370-4e85-97ab-1394e9bbe854)
+
 ## Variant Effect Prediction. 
 ### To pretrain a model you need to follow the steps:
 1. Download GRCH38 from http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz. (3.1G)
