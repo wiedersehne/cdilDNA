@@ -11,7 +11,7 @@
 
 | Model | Parameters(k) | Running time (ms) | Memory (MB) | AUROC(%) |
 | ------- | ----------- | -------- | ------- | ------------- | 
-| CDIL w/pretrain    | 39.8       | 14.51    | 65.22   | 88.08       | 
+| CDIL w/pretrain    | 39.8       | 14.51    | 65.22   | **88.08**       | 
 | CDIL w/o pretrain    | 39.8   |      14.52    |  65.22       | 87.50        | 
 | CNN   | 39.8   |     11.60     |  49.03       | 85.42         | 
 | Transformer   | 33.3   |    66.65      | 190.05      | 66.49         |
@@ -46,52 +46,3 @@
 | cdilDNA w/ (50kbp)  | 92.81      | 93.79        | 93.83       | 93.28       | 96.68     | 94.79     | 97.31  |
 | cdilDNA w/ (100kbp) | **93.22**  | **94.10**    | **93.99**   | **93.56**   | **96.88** | **95.08** | **97.32** |
 
-## Public Benchmark: GenomicBechmarks.
-### To pretrain a model you need to follow the steps:
-1. Download GRCH38 from http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz. (3.1G)
-2. Run **generate_pretrain_human.py** in `./data/`. Sequence length (100k) and numbers (200k) are required.
-3. Run **pretraining.py** with the generated data. Configurations of different lengths shall be changed accordingly in **config_gb.yaml**.
-The hyperparameters of pretraining is in supplementaty document.
-### To fine-tune a pretrained model and conduct classification of GenomicBenchmarks, you need to:
-1. run **genomic_benchmark.py** in `./data/` to download the datasets. You need to install the bechmark using ```pip install genomic-benchmarks```. The details of the datasets are shown in the table below. More details can be found in their github, https://github.com/ML-Bioinfo-CEITEC/genomic_benchmarks.
-
-| Dataset                 | Length Range | Median | Train Num | Test Num | Classes |
-|-------------------------|--------------|--------|----------|----------|---------|
-| Mouse Enhancers         | 331-4776     | 2381   | 1210     | 242      | 2       |
-| Coding vs Intergenomic  | 200          | /      | 75000    | 25000    | 2       |
-| Human vs Worm           | 200          | /      | 75000    | 25000    | 2       |
-| Human Enhancers Cohn    | 500          | 500    | 20843    | 6948     | 2       |
-| Human Enhancers Ensembl | 2-573        | 269    | 123872   | 30970    | 2       |
-| Human Regulatory        | 71-802       | 401    | 231348   | 57713    | 3       |
-| Human Nontata Promoters | 251          | /      | 27097    | 9034     | 2       |
-| Human OCR Ensembl       | 71-593       | 315    | 139804   | 34952    | 2       |
-
-2. Run **genomic_classification.py** to load the pretrained model under the folder **Pretrained_models/cdilDNA_GRCH38_100000_144_256.pt** and train cdilDNA. More specifically, you need firstly to choose a task name from the list below.
-```
-task_names = [
-    "human_nontata_promoters",
-    "human_enhancers_cohn",
-    "demo_human_or_worm",
-    "demo_mouse_enhancers",
-    "demo_coding_inter",
-    "drosophila_enhancers_stark",
-    "human_enhancers_ensembl",
-    "human_ensembl_regulatory",
-    "human_ocr_ensembl"
-]
-```
-Then, specify the task in the main function. The following example shows how to run human_ocr_ensembl: ```classify_main(cfg, "human_ocr_ensembl")```
-The optimal hyperparameters for each dataset are fixed in **config_gb.yaml**. You can also refer to the supplementary document.
-
-### Experimental Results
-| Dataset                  | CNN | Transformer | HyenaDNA | cdilDNA |
-| ------------------------ | ------- | --------------- | ------------ | ------- |
-| Mouse Enhancers          | 69.0    | 80.1            | 84.3         | **85.95** |
-| Coding vs Intergenomic   | 87.6    | 88.8            | 87.6         | **92.85** |
-| Human vs Worm            | 93.0    | 95.6            | 96.5         | **96.65** |
-| Human Enhancers Cohn     | 69.5    | 70.5            | 73.8         | **73.97** |
-| Human Enhancers Ensmbl   | 68.9    | 83.5            | 89.2         | **90.32** |
-| Human Regulatory         | 93.3    | 91.5            | 93.8         | **94.04** |
-| Human Nontata Promoters  | 84.6    | 87.7            | 96.6         | **97.62** |
-| Human OCR Ensembl        | 68.0    | 73.0            | **80.9**     | 77.52   |
-| Average                  | 79.2    | 83.8            | 87.8         | **88.62** |
