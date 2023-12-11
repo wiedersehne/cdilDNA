@@ -20,6 +20,8 @@
 | Performer   | 41.3   |    24.25      | 76.44      | 87.32         |
 | Enformer   |/   |    /      | /      | 84.53         |
 
+[varant_effect result](human_len.pdf)
+
 ## OCRs prediciton in plants.
 ### To pretrain a model you need to follow the steps:
 1. Download reference genome files from https://plantdeepsea-toturial2.readthedocs.io/en/latest/08-Statistics.html
