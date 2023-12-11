@@ -1,7 +1,11 @@
-# cdilDNA
+# Self-supervised Learning for DNA sequences with circular dilated convolutional networks
+
+paper: [https://doi.org/10.1016/j.neunet.2023.12.002](https://doi.org/10.1016/j.neunet.2023.12.002).
+
+### Overview of cdilDNA with self-supervised learning.
 ![image](https://github.com/wiedersehne/cdilDNA/assets/8848011/17f25d7b-3370-4e85-97ab-1394e9bbe854)
 
-## Variant Effect Prediction. 
+## Variant Effect Prediction in Human Tissues. 
 ### To pretrain a model you need to follow the steps:
 1. Download GRCH38 from http://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/hg38.fa.gz. (3.1G)
 2. Run **generate_pretrain_human.py** in `./data/`. Sequence length [1k, 5k, 10k] and numbers(100k) are required. You need to load two data files, **hg38.fa** and **chromosomes.csv**, for this task.
@@ -11,44 +15,40 @@
 2. Run **classify_lightning.py** to load the pretrained model under the folder `./human/100k_pretrain_best_epoch_9_8_16.pt` and train cdilDNA.
 ### Experimental Results
 
-| Model | Parameters(k) | Running time (ms) | Memory (MB) | AUROC(%) |
-| ------- | ----------- | -------- | ------- | ------------- | 
-| CDIL w/pretrain    | 39.8       | 14.51    | 65.22   | **88.08**       | 
-| CDIL w/o pretrain    | 39.8   |      14.52    |  65.22       | 87.50        | 
-| CNN   | 39.8   |     11.60     |  49.03       | 85.42         | 
-| Transformer   | 33.3   |    66.65      | 190.05      | 66.49         |
-| Nystromformer w/pretrain   | 42   |    35.08      | 133.19      | 87.71       |
-| Nystromformer w/o  pretrain   | 42   |    35.08      | 133.19     | 87.50        |
-| Performer   | 41.3   |    24.25      | 76.44      | 87.32         |
-| Enformer   |/   |    /      | /      | 84.53         |
+| Model                       | Parameters(k) | Running time (ms) | Memory (MB) | AUROC(%)  |
+|-----------------------------|---------------|-------------------|-------------|-----------| 
+| CDIL w/ pretrain            | 39.8          | 14.51             | 65.22       | **88.08** | 
+| CDIL w/o pretrain           | 39.8          | 14.52             | 65.22       | 87.50     | 
+| CNN                         | 39.8          | 11.60             | 49.03       | 85.42     | 
+| Transformer                 | 33.3          | 66.65             | 190.05      | 66.49     |
+| Nyströmformer w/ pretrain   | 42            | 35.08             | 133.19      | 87.71     |
+| Nyströmformer w/o  pretrain | 42            | 35.08             | 133.19      | 87.50     |
+| Performer                   | 41.3          | 24.25             | 76.44       | 87.32     |
+| Enformer                    | /             | /                 | /           | 84.53     |
 
 [varant_effect result](human_len.pdf)
 
-## OCRs prediciton in plants.
-![image](https://github.com/wiedersehne/cdilDNA/assets/8848011/304e2ce2-f009-4366-94c9-1f3427e530a7)
+## OCR Prediciton in Plants.
 
 ### To pretrain a model you need to follow the steps:
-1. Download reference genome files from https://plantdeepsea-toturial2.readthedocs.io/en/latest/08-Statistics.html
-2. Run **plant_download.ipynb** in `./data/plant_data/`to download training data.
-3. Run **run.sh** in `./data/plant_generate/` to save data. The sequence length is required.
-4. Run **pretraining.py** with the generated data. Configurations of different lengths shall be changed accordingly in **config_plant.yaml**.
+1. Download reference genome files from https://plantdeepsea-toturial2.readthedocs.io/en/latest/08-Statistics.html to `./data/plants/plant_genome/`.
+2. Run **plant_download.ipynb** in `./data/plants/plant_data/` to download plant data.
+3. Run **_cython_setup.sh** in `./plants/data_cython/`.
+4. Run **run_pre.py** in `./plants/` for required plant.
+
 ### To fine-tune a pretrained model, you need to:
-1. Run **run.sh** in `./data/plant_generate/` to generate data. The plant name is required.
-2. Run **plant_classification.py** to load the pretrained model under the folder `./Pretrained_models/` and train cdilDNA.
+1. Run **run_epoch.py** in `./plants/` with **--pre_training**. The pretrained models are saved in `./plants/pre/`.
 
 ### Experimental Results
-| Plant               | A.thaliana | B.distachyon | O.sativa-MH | O.sativa-ZS | S.bicolor | S.italica | Z.mays |
-| ------------------- | ---------- | ------------ | ----------- | ----------- | --------- | --------- | ------ |
-| Number of OCR labels                | 19         | 9            | 15          | 15          | 14        | 9         | 19     |
-| DeepSEA             | 92.02      | 92.88        | 92.95       | 92.19       | 96.24     | 94.04     | 96.64  |
-| Nystromformer       | 89.22      | 90.86        | 89.08       | 88.10       | 94.50     | 91.61     | 90.74  |
-| Linformer           | 70.56      | 83.50        | 79.28       | 80.43       | 87.30     | 84.64     | 80.82  |
-| Transformer         | 64.96      | 82.53        | 78.79       | 78.62       | 85.15     | 84.24     | 63.02  |
-| Mega                | 85.37      | 88.68        | 85.43       | 85.51       | 91.99     | 88.41     | 84.74  |
-| S4                  | 85.82      | 90.70        | 88.30       | 87.84       | 93.95     | 90.84     | 92.87  |
-| cdilDNA w/o         | 92.09      | 93.15        | 92.85       | 92.15       | 96.32     | 93.98     | 96.64  |
-| cdilDNA w/ (1kbp)   | 92.24      | 93.57        | 93.42       | 92.81       | 96.41     | 94.33     | 97.07  |
-| cdilDNA w/ (10kbp)  | 92.45      | 93.77        | 93.70       | 93.11       | 96.74     | 94.71     | 97.21  |
-| cdilDNA w/ (50kbp)  | 92.81      | 93.79        | 93.83       | 93.28       | 96.68     | 94.79     | 97.31  |
-| cdilDNA w/ (100kbp) | **93.22**  | **94.10**    | **93.99**   | **93.56**   | **96.88** | **95.08** | **97.32** |
+| Plant                      | A.thaliana | B.distachyon | O.sativa-MH | O.sativa-ZS | S.italica | S.bicolor | Z.mays    |
+|----------------------------| ---------- | ------------ |-------------| ----------- |-----------| --------- |-----------|
+| CDIL w/ pretrain           | **92.90**  | **93.47**    | **93.53**   | **93.09**   | **94.43** | **96.42** | **97.21** |
+| CDIL w/o pretrain          | 90.39      | 91.95        | 91.45       | 91.66       | 92.42     | 95.80     | 95.87     |
+| CNN                        | 82.02      | 87.09        | 86.05       | 84.94       | 88.30     | 91.52     | 89.79     |
+| PlantDeepSEA               | 90.24      | 90.59        | 91.08       | 90.18       | 92.39     | 94.86     | 95.19     |
+| Transformer                | 76.74      | 85.63        | 83.17       | 83.56       | 86.27     | 88.90     | 84.78     |
+| Nyströmformer w/ pretrain  | 89.80      | 92.24        | 90.75       | 90.50       | 92.75     | 95.45     | 95.20     |
+| Nyströmformer w/o pretrain | 86.02      | 90.19        | 86.92       | 86.31       | 90.94     | 93.67     | 89.77     |
+| Performer                  | 75.95      | 85.25        | 82.81       | 83.02       | 86.60     | 88.09     | 85.13     |
 
+[//]:![image](https://github.com/wiedersehne/cdilDNA/assets/8848011/304e2ce2-f009-4366-94c9-1f3427e530a7)
